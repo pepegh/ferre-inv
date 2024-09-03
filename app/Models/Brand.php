@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Product extends Model
+class Brand extends Model
 {
     use HasFactory;
 
@@ -16,15 +16,11 @@ class Product extends Model
      */
     protected $fillable = [
         'name',
-        'brand_id',
         'description',
-        'price',
-        'cost_price',
-        'stock'
     ];
 
-    public function brand()
+    public function products()
     {
-        return $this->belongsTo('App\Models\Brand');
+        return $this->hasMany('App\Models\Product');
     }
 }
