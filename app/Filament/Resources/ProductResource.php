@@ -19,7 +19,7 @@ class ProductResource extends Resource
 {
     protected static ?string $model = Product::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-squares-2x2';
+    protected static ?string $navigationIcon = 'heroicon-o-swatch';
 
     protected static ?string $recordTitleAttribute = 'name';
 
@@ -48,8 +48,9 @@ class ProductResource extends Resource
                     ->numeric()
                     ->default(0),
                 Forms\Components\Select::make('categories')
+                    ->relationship('categories', 'name')
+                    ->preload()
                     ->multiple()
-                    ->options(Category::all()->pluck('name', 'id'))
                     ->searchable(),
             ]);
     }
@@ -61,9 +62,11 @@ class ProductResource extends Resource
                 Tables\Columns\TextColumn::make('name')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('price')
-                    ->money()
+                    ->prefix('Q. ')
+                    ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('cost_price')
+                    ->prefix('Q. ')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('stock')
