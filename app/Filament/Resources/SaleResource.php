@@ -2,11 +2,10 @@
 
 namespace App\Filament\Resources;
 
+use App\Models\Sale;
 use App\Models\Product;
-use App\Models\Supplier;
-use App\Models\PurchaseOrder;
-use App\Filament\Resources\PurchaseOrderResource\RelationManagers;
-use App\Filament\Resources\PurchaseOrderResource\Pages;
+use App\Filament\Resources\SaleResource\Pages;
+use App\Filament\Resources\SaleResource\RelationManagers;
 
 use Filament\Forms;
 use Filament\Tables;
@@ -14,14 +13,17 @@ use Filament\Forms\Form;
 use Filament\Tables\Table;
 use Filament\Resources\Resource;
 
+use Illuminate\Support\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
-class PurchaseOrderResource extends Resource
+class SaleResource extends Resource
 {
-    protected static ?string $model = PurchaseOrder::class;
+    protected static ?string $model = Sale::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-shopping-cart';
+    protected static ?string $navigationIcon = 'heroicon-o-shopping-bag';
+
+    protected static ?string $recordTitleAttribute = 'code';
 
     public static function form(Form $form): Form
     {
@@ -30,19 +32,26 @@ class PurchaseOrderResource extends Resource
                 Forms\Components\Section::make('General')
                     ->columns(2)
                     ->schema([
-                        Forms\Components\Select::make('supplier_id')
-                            ->label('Supplier')
-                            ->options(Supplier::all()->pluck('name', 'id')),
-                        Forms\Components\TextInput::make('order_number')
+                        Forms\Components\TextInput::make('code')
+                            ->required()
+                            ->default(function () {
+                                $prefix = 'V';
+                                $date = Carbon::now();
+                                $year = $date->format('y');
+                                $month = $date->format('m');
+                                $day = $date->format('d');
+                                $count = Sale::whereDate('created_at', $date->format('Y-m-d'))->count() + 1;
+
+                                return $prefix . $year . $month . $day . $count;
+                            })
+                            ->maxLength(255),
+                        Forms\Components\DatePicker::make('date')
+                            ->default(function () {
+                                return Carbon::now();
+                            }),
+                        Forms\Components\TextInput::make('client')
                             ->required()
                             ->maxLength(255),
-                        Forms\Components\DatePicker::make('order_date'),
-                        Forms\Components\Select::make('status')
-                            ->options([
-                                'pending'   => 'Pendiente',
-                                'completed' => 'Completada',
-                                'canceled'  => 'Cancelada',
-                            ]),
                         Forms\Components\TextInput::make('total')
                             ->disabled()
                             ->dehydrated(true)
@@ -56,7 +65,7 @@ class PurchaseOrderResource extends Resource
                                 return $sum;
                             }),
                     ]),
-                Forms\Components\Section::make('Detalle de compra')
+                Forms\Components\Section::make('Detalle de venta')
                     ->schema([
                         Forms\Components\Repeater::make('items')
                             ->relationship()
@@ -72,13 +81,11 @@ class PurchaseOrderResource extends Resource
                                     ->live(onBlur: true)
                                     ->required()
                                     ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
-                                        $price = Product::find($state)?->cost_price ?? 0;
+                                        $price = Product::find($state)?->price ?? 0;
                                         $quantity = $get('quantity');
                                         $total = $price * $quantity;
                                         $set('unit_price', $price);
                                         $set('sub_total', $total);
-
-                                        self::updateTotal($get, $set);
                                     }),
                                 Forms\Components\TextInput::make('quantity')
                                     ->columnSpan(2)
@@ -91,7 +98,6 @@ class PurchaseOrderResource extends Resource
                                         $quantity = $state;
                                         $total = $price * $quantity;
                                         $set('sub_total', $total);
-                                        self::updateTotal($get, $set);
                                     })
                                     ->numeric(),
                                 Forms\Components\TextInput::make('unit_price')
@@ -104,8 +110,6 @@ class PurchaseOrderResource extends Resource
                                         $quantity = $get('quantity');
                                         $total = $price * $quantity;
                                         $set('sub_total', $total);
-
-                                        self::updateTotal($get, $set);
                                     }),
                                 Forms\Components\TextInput::make('sub_total')
                                     ->columnSpan(3)
@@ -120,35 +124,24 @@ class PurchaseOrderResource extends Resource
                                     }),
                             ])
                     ])
-                
-                ]);
+            ]);
     }
 
     public static function table(Table $table): Table
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('order_date')
+                Tables\Columns\TextColumn::make('date')
                     ->date()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('supplier.name')
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('order_number')
+                Tables\Columns\TextColumn::make('code')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('status')
+                Tables\Columns\TextColumn::make('client')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('total')
                     ->prefix('Q. ')
                     ->numeric()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 //
@@ -170,20 +163,12 @@ class PurchaseOrderResource extends Resource
         ];
     }
 
-    private static function updateTotal(Forms\Get $get, Forms\Set $set)
-    {
-        $items = $get('items') ?? [];
-        $total = collect($items)->sum('sub_total');
-
-        $set('total', $total);
-    }
-
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListPurchaseOrders::route('/'),
-            'create' => Pages\CreatePurchaseOrder::route('/create'),
-            'edit' => Pages\EditPurchaseOrder::route('/{record}/edit'),
+            'index' => Pages\ListSales::route('/'),
+            'create' => Pages\CreateSale::route('/create'),
+            'edit' => Pages\EditSale::route('/{record}/edit'),
         ];
     }
 }
