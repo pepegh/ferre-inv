@@ -23,6 +23,8 @@ class PurchaseOrderResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-shopping-cart';
 
+    protected static ?int $navigationSort = 3;
+
     public static function form(Form $form): Form
     {
         return $form
@@ -32,7 +34,8 @@ class PurchaseOrderResource extends Resource
                     ->schema([
                         Forms\Components\Select::make('supplier_id')
                             ->label('Supplier')
-                            ->options(Supplier::all()->pluck('name', 'id')),
+                            ->options(Supplier::all()->pluck('name', 'id'))
+                            ->required(),
                         Forms\Components\TextInput::make('order_number')
                             ->required()
                             ->maxLength(255),
