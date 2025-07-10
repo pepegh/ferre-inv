@@ -23,6 +23,8 @@ class SaleResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-shopping-bag';
 
+    protected static ?int $navigationSort = 1;
+
     protected static ?string $recordTitleAttribute = 'code';
 
     public static function form(Form $form): Form
